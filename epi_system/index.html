@@ -773,6 +773,8 @@
     /* ===== Routing / Render ===== */
     const routes = {
       dashboard: ['Dashboard', 'Indicadores operacionais e alertas legais'],
+      solicitar: ['Solicitar EPI', 'Fluxo direto para registrar uma nova retirada'],
+      base_dados: ['Base de Dados', 'Acompanhamento consolidado dos registros'],
       retiradas: ['Retiradas', 'Entrega, devolução e comprovantes'],
       epis: ['EPIs', 'Cadastro, CA e estoque'],
       colaboradores: ['Colaboradores', 'Dados mínimos e consentimento LGPD'],
@@ -781,6 +783,8 @@
     };
     const navItems = [
       ['dashboard', 'Dashboard', icon('dashboard')],
+      ['solicitar', 'Solicitar EPI', icon('retirada')],
+      ['base_dados', 'Base de Dados', icon('audit')],
       ['retiradas', 'Retiradas', icon('retirada')],
       ['epis', 'EPIs', icon('epi')],
       ['colaboradores', 'Colaboradores', icon('people')],
@@ -803,6 +807,8 @@
       document.getElementById('pageSubtitle').textContent = subtitle;
       renderNav();
       if (state.route === 'dashboard') renderDashboard();
+      if (state.route === 'solicitar') renderSolicitarEpi();
+      if (state.route === 'base_dados') renderBaseDados();
       if (state.route === 'retiradas') renderRetiradas();
       if (state.route === 'epis') renderEpis();
       if (state.route === 'colaboradores') renderColaboradores();
@@ -847,6 +853,81 @@
             <span>Página ${page} de ${Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))}</span>
             <button class="btn" ${page >= Math.ceil(filtered.length / PAGE_SIZE) ? 'disabled' : ''} onclick="pageRetiradas(1)">›</button>
           </div>
+        </div>`;
+    }
+
+    function renderSolicitarEpi() {
+      const disponiveis = state.epis.filter(e => Number(e.estoque_atual) > 0 && caStatus(e) !== 'vencido');
+      const criticos = state.epis.filter(e => Number(e.estoque_atual) <= Number(e.estoque_minimo));
+      document.getElementById('content').innerHTML = `
+        ${state.alerts.ca_vencidos ? `<div class="banner red">CA vencido bloqueia solicitacao. Regularize o cadastro antes de entregar o EPI.</div>` : ''}
+        <div class="card-grid">
+          ${metric('EPIs disponiveis para solicitacao', disponiveis.length, 'ok')}
+          ${metric('Colaboradores cadastrados', state.colaboradores.length, '')}
+          ${metric('Retiradas ativas', state.retiradas.filter(r => r.status === 'ativo').length, 'warn')}
+          ${metric('Estoque critico', criticos.length, 'bad')}
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Nova solicitacao de EPI</h3>
+            <button class="btn primary" onclick="openRetiradaModal()">+ Solicitar EPI</button>
+          </div>
+          <div style="padding:18px">
+            <div class="banner blue">Use esta aba para registrar a entrega do EPI com validacao de estoque, CA vigente e assinatura digital.</div>
+            <div class="table-wrap"><table>
+              <thead><tr><th>EPI</th><th>CA</th><th>Validade</th><th>Estoque</th><th>Status</th><th>Acao</th></tr></thead>
+              <tbody>${state.epis.map(e => `<tr>
+                <td>${esc(e.nome)}</td>
+                <td>${esc(e.ca_numero)}</td>
+                <td>${fmtDate(e.validade_ca)}</td>
+                <td>${e.estoque_atual}</td>
+                <td>${caBadge(e)}</td>
+                <td><button class="btn" ${caStatus(e) === 'vencido' || Number(e.estoque_atual) <= 0 ? 'disabled' : ''} onclick="openRetiradaModal()">Solicitar</button></td>
+              </tr>`).join('') || '<tr><td colspan="6">Sem EPIs cadastrados.</td></tr>'}</tbody>
+            </table></div>
+          </div>
+        </div>`;
+    }
+
+    function renderBaseDados() {
+      const ativos = state.retiradas.filter(r => r.status === 'ativo').length;
+      document.getElementById('content').innerHTML = `
+        <div class="card-grid">
+          ${metric('EPIs', state.epis.length, 'ok')}
+          ${metric('Colaboradores', state.colaboradores.length, '')}
+          ${metric('Retiradas', state.retiradas.length, 'warn')}
+          ${metric('Ativas', ativos, 'bad')}
+        </div>
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <button class="btn" onclick="location.hash='epis'">Gerenciar EPIs</button>
+            <button class="btn" onclick="location.hash='colaboradores'">Gerenciar colaboradores</button>
+            <button class="btn" onclick="location.hash='retiradas'">Gerenciar retiradas</button>
+            <button class="btn accent" onclick="exportBaseDados()">Exportar JSON</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>EPIs em estoque</h3></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Nome</th><th>CA</th><th>Categoria</th><th>Estoque atual</th><th>Estoque minimo</th><th>Status CA</th></tr></thead>
+            <tbody>${state.epis.slice(0, 10).map(e => `<tr>
+              <td>${esc(e.nome)}</td><td>${esc(e.ca_numero)}</td><td>${esc(e.categoria)}</td><td>${e.estoque_atual}</td><td>${e.estoque_minimo}</td><td>${caBadge(e)}</td>
+            </tr>`).join('') || '<tr><td colspan="6">Sem EPIs.</td></tr>'}</tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Retiradas recentes</h3></div>
+          ${retiradasTable(state.retiradas.slice(0, 10), false)}
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Colaboradores cadastrados</h3></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Matricula</th><th>Nome</th><th>Cargo</th><th>Setor</th><th>Retiradas ativas</th></tr></thead>
+            <tbody>${state.colaboradores.slice(0, 10).map(c => `<tr>
+              <td>${esc(c.matricula)}</td><td>${esc(c.nome_completo)}</td><td>${esc(c.cargo)}</td><td>${esc(c.setor)}</td>
+              <td>${state.retiradas.filter(r => r.colaborador_id === c.id && r.status === 'ativo').length}</td>
+            </tr>`).join('') || '<tr><td colspan="5">Sem colaboradores.</td></tr>'}</tbody>
+          </table></div>
         </div>`;
     }
 
@@ -1199,6 +1280,22 @@
       URL.revokeObjectURL(a.href);
     }
 
+    function exportBaseDados() {
+      const payload = {
+        exported_at: new Date().toISOString(),
+        epis: state.epis,
+        colaboradores: state.colaboradores,
+        retiradas: state.retiradas,
+        audit: state.audit
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `base-controle-epi-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
     function exportColaborador(id) {
       const c = state.colaboradores.find(x => x.id === id);
       const blob = new Blob([JSON.stringify(c, null, 2)], { type: 'application/json' });
@@ -1305,12 +1402,18 @@
       return `<span class="badge ${map[status] || 'blue'}">${esc(status)}</span>`;
     }
     function caBadge(e) {
+      const status = caStatus(e);
+      if (status === 'vencido') return '<span class="badge red">vencido</span>';
+      if (status === 'vencendo') return '<span class="badge amber">vencendo</span>';
+      return '<span class="badge green">válido</span>';
+    }
+    function caStatus(e) {
       const now = new Date();
       const val = new Date(e.validade_ca + 'T00:00:00');
       const diff = Math.ceil((val - now) / 86400000);
-      if (diff < 0) return '<span class="badge red">vencido</span>';
-      if (diff <= 30) return '<span class="badge amber">vencendo</span>';
-      return '<span class="badge green">válido</span>';
+      if (diff < 0) return 'vencido';
+      if (diff <= 30) return 'vencendo';
+      return 'valido';
     }
     function opBadge(op) {
       const map = { INSERT: 'green', UPDATE: 'amber', DELETE: 'red' };

@@ -71,6 +71,11 @@ Para consumir a API real, altere para:
 const DEMO_MODE = false;
 ```
 
+Abas principais da interface:
+
+- `Solicitar EPI`: fluxo direto para registrar retirada com assinatura digital.
+- `Base de Dados`: acompanhamento consolidado de EPIs, colaboradores, retiradas e export JSON.
+
 ## Docker
 
 Configure `epi_system/.env`:
