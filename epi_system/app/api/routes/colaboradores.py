@@ -3,12 +3,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
 from app.models.colaborador import Colaborador
 from app.schemas.colaborador import ColaboradorCreate, ColaboradorRead, ColaboradorUpdate
 from app.services import colaborador_service
 
-router = APIRouter(prefix="/colaboradores", tags=["colaboradores"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/colaboradores", tags=["colaboradores"])
 
 
 @router.post("", response_model=ColaboradorRead, status_code=status.HTTP_201_CREATED)

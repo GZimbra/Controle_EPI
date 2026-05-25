@@ -5,12 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
 from app.lgpd import service
 from app.schemas.lgpd import CorrecaoTitularRequest, DireitoTitularResponse, TitularRequest
 from app.services.colaborador_service import get_by_matricula
 
-router = APIRouter(prefix="/lgpd", tags=["lgpd"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/lgpd", tags=["lgpd"])
 
 
 @router.post("/acesso", response_model=DireitoTitularResponse)

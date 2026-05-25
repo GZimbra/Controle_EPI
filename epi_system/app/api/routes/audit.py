@@ -6,11 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
 from app.models.audit_log import AuditLog
 from app.schemas.audit import AuditLogRead
 
-router = APIRouter(prefix="/audit", tags=["audit"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/audit", tags=["audit"])
 
 
 @router.get("", response_model=list[AuditLogRead])

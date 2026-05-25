@@ -3,12 +3,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
 from app.models.retirada import RetiradaEPI
 from app.schemas.retirada import RetiradaCreate, RetiradaRead, RetiradaStatusUpdate
 from app.services import retirada_service
 
-router = APIRouter(prefix="/retiradas", tags=["retiradas"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/retiradas", tags=["retiradas"])
 
 
 @router.post("", response_model=RetiradaRead, status_code=status.HTTP_201_CREATED)

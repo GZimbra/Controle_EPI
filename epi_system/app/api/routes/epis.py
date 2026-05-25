@@ -2,12 +2,10 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user
-from app.models.usuario import UsuarioSistema
 from app.schemas.epi import EPICreate, EPIRead, EPIUpdate
 from app.services import epi_service
 
-router = APIRouter(prefix="/epis", tags=["epis"], dependencies=[Depends(get_current_user)])
+router = APIRouter(prefix="/epis", tags=["epis"])
 
 
 @router.post("", response_model=EPIRead, status_code=status.HTTP_201_CREATED)
@@ -54,6 +52,6 @@ def update(epi_id: int, payload: EPIUpdate, db: Session = Depends(get_db)) -> EP
 
 
 @router.delete("/{epi_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(epi_id: int, db: Session = Depends(get_db), user: UsuarioSistema = Depends(get_current_user)) -> Response:
+def delete(epi_id: int, db: Session = Depends(get_db)) -> Response:
     epi_service.soft_delete_epi(db, epi_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

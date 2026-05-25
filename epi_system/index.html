@@ -505,26 +505,6 @@
   </style>
 </head>
 <body>
-  <div id="loginView" class="login-shell">
-    <form id="loginForm" class="login-panel">
-      <div class="brand-mark">EPI</div>
-      <h1>Controle de EPI</h1>
-      <p>Acesso interno SESMT e segurança do trabalho</p>
-      <div class="field">
-        <label for="loginEmail">Email ou usuário</label>
-        <input id="loginEmail" autocomplete="username" value="admin">
-        <small class="error-msg" data-error="username"></small>
-      </div>
-      <div class="field">
-        <label for="loginPassword">Senha</label>
-        <input id="loginPassword" type="password" autocomplete="current-password" value="admin123-change">
-        <small class="error-msg" data-error="password"></small>
-      </div>
-      <button class="btn primary" type="submit"><span data-login-spin></span> Entrar</button>
-      <div id="loginFeedback" class="error-msg" style="margin-top:12px;"></div>
-    </form>
-  </div>
-
   <div id="appView" class="app-shell hidden">
     <aside class="sidebar">
       <div class="sidebar-logo">
@@ -541,7 +521,6 @@
           <strong id="userName">admin</strong>
           <span id="userRole">admin</span>
         </div>
-        <button class="icon-button" id="logoutBtn" title="Logout">⎋</button>
       </div>
     </aside>
     <main class="main">
@@ -571,8 +550,8 @@
     const PAGE_SIZE = 20;
     const state = {
       route: 'dashboard',
-      token: sessionStorage.getItem('epi_token'),
-      user: JSON.parse(sessionStorage.getItem('epi_user') || 'null'),
+      token: null,
+      user: { username: 'operador', role: 'operador', matricula: 'SESMT001' },
       epis: [],
       colaboradores: [],
       retiradas: [],
@@ -630,12 +609,10 @@
     async function request(path, options = {}) {
       if (DEMO_MODE) return demoRequest(path, options);
       const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-      if (state.token) headers.Authorization = `Bearer ${state.token}`;
       setLoading(true);
       try {
         const res = await fetch(`${API}${path}`, { ...options, headers });
         if (res.status === 401) {
-          logout();
           throw new Error('Sessão expirada');
         }
         if (!res.ok) {
@@ -657,10 +634,6 @@
       await new Promise(r => setTimeout(r, 120));
       const method = (options.method || 'GET').toUpperCase();
       const body = options.body ? JSON.parse(options.body) : null;
-      if (path === '/auth/login') {
-        if (!body.username || !body.password) throw Object.assign(new Error('Credenciais inválidas'), { status: 401 });
-        return { access_token: 'demo-token', token_type: 'bearer' };
-      }
       if (path === '/epis/alertas') return computeAlerts();
       if (path === '/epis' && method === 'GET') return mock.epis;
       if (path === '/colaboradores' && method === 'GET') return mock.colaboradores;
@@ -747,32 +720,9 @@
     }
 
     /* ===== Auth / Boot ===== */
-    document.getElementById('loginForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      clearErrors();
-      const username = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      if (!username || !password) return showLoginFeedback('Informe usuário e senha.');
-      try {
-        document.querySelector('[data-login-spin]').innerHTML = '<span class="spinner"></span>';
-        const res = await request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
-        state.token = res.access_token;
-        state.user = { username, role: 'admin', matricula: 'SESMT001' };
-        sessionStorage.setItem('epi_token', state.token);
-        sessionStorage.setItem('epi_user', JSON.stringify(state.user));
-        await initApp();
-      } catch (err) {
-        if (err.status === 422) showValidation(err.payload);
-        showLoginFeedback(err.message || 'Falha no login.');
-      } finally {
-        document.querySelector('[data-login-spin]').innerHTML = '';
-      }
-    });
-    document.getElementById('logoutBtn').addEventListener('click', logout);
     window.addEventListener('hashchange', () => routeTo(location.hash.replace('#', '') || 'dashboard'));
 
     async function initApp() {
-      document.getElementById('loginView').classList.add('hidden');
       document.getElementById('appView').classList.remove('hidden');
       document.getElementById('apiModeLabel').textContent = DEMO_MODE ? 'DEMO_MODE ativo' : API;
       document.getElementById('userName').textContent = state.user.username;
@@ -784,21 +734,7 @@
       routeTo(location.hash.replace('#', '') || 'dashboard');
     }
 
-    function logout() {
-      sessionStorage.removeItem('epi_token');
-      sessionStorage.removeItem('epi_user');
-      state.token = null;
-      state.user = null;
-      location.hash = '';
-      document.getElementById('appView').classList.add('hidden');
-      document.getElementById('loginView').classList.remove('hidden');
-    }
-
-    if (state.token || DEMO_MODE) {
-      if (!state.user) state.user = { username: 'admin', role: 'admin', matricula: 'SESMT001' };
-      if (DEMO_MODE && !state.token) state.token = 'demo-token';
-      initApp();
-    }
+    initApp();
 
     /* ===== Data Loading ===== */
     async function loadAll() {
@@ -1396,9 +1332,8 @@
       return `<svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${paths[type]}</svg>`;
     }
     function setLoading(on) { document.getElementById('globalSpinner').innerHTML = on ? '<span class="spinner"></span>' : ''; }
-    function clearErrors() { document.querySelectorAll('.error-msg[data-error]').forEach(el => el.textContent = ''); document.getElementById('loginFeedback').textContent = ''; }
+    function clearErrors() { document.querySelectorAll('.error-msg[data-error]').forEach(el => el.textContent = ''); }
     function setError(field, msg) { const el = document.querySelector(`[data-error="${field}"]`); if (el) el.textContent = msg; }
-    function showLoginFeedback(msg) { document.getElementById('loginFeedback').textContent = msg; }
     function showValidation(payload) {
       (payload.detail || []).forEach(err => setError(err.loc?.at(-1), err.msg));
     }

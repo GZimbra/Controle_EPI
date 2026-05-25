@@ -22,9 +22,6 @@ class Settings(BaseSettings):
     data_retention_years: int = 5
     auth_rate_limit: str = "5/minute"
     auto_create_tables: bool = False
-    admin_username: str | None = None
-    admin_password: str | None = None
-    admin_matricula: str = "ADMIN"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

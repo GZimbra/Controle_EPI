@@ -5,19 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
-from app.api.routes import audit, auth, colaboradores, epis, lgpd, retiradas
+from app.api.routes import audit, colaboradores, epis, lgpd, retiradas
 from app.audit.listeners import register_audit_listeners
 from app.core.config import get_settings
-from app.core.database import Base, SessionLocal, engine
-from app.core.security import get_password_hash
-from app.models.usuario import UsuarioSistema
+from app.core.database import Base, engine
 from app.services.scheduler import build_scheduler
 
 settings = get_settings()
 register_audit_listeners()
 
 app = FastAPI(title=settings.app_name, version="1.0.0")
-app.state.limiter = auth.limiter
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,7 +35,6 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
     return JSONResponse(status_code=429, content={"detail": "Muitas requisições"})
 
 
-app.include_router(auth.router)
 app.include_router(epis.router)
 app.include_router(colaboradores.router)
 app.include_router(retiradas.router)
@@ -52,19 +48,6 @@ scheduler = build_scheduler()
 def startup() -> None:
     if settings.auto_create_tables:
         Base.metadata.create_all(bind=engine)
-        if settings.admin_username and settings.admin_password:
-            with SessionLocal() as db:
-                exists = db.query(UsuarioSistema).filter_by(username=settings.admin_username).first()
-                if not exists:
-                    db.add(
-                        UsuarioSistema(
-                            username=settings.admin_username,
-                            password_hash=get_password_hash(settings.admin_password),
-                            matricula=settings.admin_matricula,
-                            role="admin",
-                        )
-                    )
-                    db.commit()
     if os.getenv("VERCEL"):
         return
     if not scheduler.running:

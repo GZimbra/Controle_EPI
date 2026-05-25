@@ -125,9 +125,6 @@ SIGNATURE_STORAGE_DIR=/tmp/signatures
 BACKUP_DIR=/tmp/backups
 VERCEL=1
 AUTO_CREATE_TABLES=true
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=troque_antes_do_deploy
-ADMIN_MATRICULA=ADMIN
 ```
 
 Notas operacionais:
@@ -136,6 +133,7 @@ Notas operacionais:
 - Scheduler e backup local sao desativados automaticamente quando `VERCEL=1`.
 - Para producao real, substitua storage local de assinaturas por storage externo criptografado.
 - `AUTO_CREATE_TABLES=true` cria o schema automaticamente no primeiro cold start para facilitar o primeiro deploy.
+- A aplicacao nao exige login. A interface abre direto no painel.
 - Para operacao controlada, depois do primeiro deploy execute migration externamente e altere `AUTO_CREATE_TABLES=false`.
 - Alternativa manual para migrar o banco de producao:
 
@@ -146,7 +144,6 @@ alembic upgrade head
 
 ## Endpoints principais
 
-- `POST /auth/login`
 - `POST /epis`, `GET /epis`, `GET /epis/alertas`, `PATCH /epis/{id}`, `DELETE /epis/{id}`
 - `POST /colaboradores`, `GET /colaboradores`, `PATCH /colaboradores/{id}`, `DELETE /colaboradores/{id}`
 - `POST /retiradas`, `GET /retiradas`, `PATCH /retiradas/{id}/status`
