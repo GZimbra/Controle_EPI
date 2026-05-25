@@ -870,23 +870,70 @@
         <div class="panel">
           <div class="panel-head">
             <h3>Nova solicitacao de EPI</h3>
-            <button class="btn primary" onclick="openRetiradaModal()">+ Solicitar EPI</button>
+            <button class="btn" onclick="clearSolicitarForm()">Limpar</button>
           </div>
           <div style="padding:18px">
-            <div class="banner blue">Use esta aba para registrar a entrega do EPI com validacao de estoque, CA vigente e assinatura digital.</div>
+            <div class="banner blue">Preencha os dados abaixo para solicitar/registrar a entrega do EPI diretamente nesta tela.</div>
+            <form id="retiradaForm">
+              <div class="form-grid">
+                <div class="field autocomplete">
+                  <label>Colaborador</label>
+                  <input id="colabSearch" placeholder="Matricula ou nome" autocomplete="off">
+                  <div id="colabResults" class="autocomplete-list hidden"></div>
+                  <small class="error-msg" data-error="colaborador_id"></small>
+                </div>
+                <div class="field">
+                  <label>EPI</label>
+                  <select id="retiradaEpi" onchange="updateEpiInfo()">
+                    <option value="">Selecione</option>
+                    ${state.epis.map(e => `<option value="${e.id}" ${caStatus(e) === 'vencido' || Number(e.estoque_atual) <= 0 ? 'disabled' : ''}>${esc(e.nome)} - ${esc(e.ca_numero)} - estoque ${e.estoque_atual}</option>`).join('')}
+                  </select>
+                  <small id="epiInfo" class="error-msg"></small>
+                </div>
+                <div class="field"><label>Quantidade</label><input id="retiradaQtd" type="number" min="1" value="1"><small class="error-msg" data-error="quantidade"></small></div>
+                <div class="field"><label>Devolucao prevista</label><input id="retiradaDevolucao" type="date"></div>
+                <div class="field"><label>Responsavel</label><input id="retiradaResp" value="${esc(state.user.matricula || state.user.username)}" readonly></div>
+              </div>
+              <div class="field">
+                <label>Assinatura digital</label>
+                <canvas id="signatureCanvas" class="signature-pad" width="400" height="150"></canvas>
+                <div class="signature-tools">
+                  <button class="btn" type="button" onclick="clearSignature()">Limpar assinatura</button>
+                  <button class="btn accent" type="button" onclick="confirmSignature()">Confirmar assinatura</button>
+                  <span id="signatureStatus" class="badge amber">pendente</span>
+                </div>
+                <small class="error-msg">Ao assinar, o colaborador declara ter recebido o EPI em perfeitas condicoes.</small>
+              </div>
+              <label class="check-row"><input id="retiradaCiencia" type="checkbox"> Colaborador declara ciencia do uso correto e do registro legal da entrega.</label>
+              <div style="display:flex;gap:10px;margin-top:16px">
+                <button class="btn primary" type="button" onclick="submitRetirada()">Registrar solicitacao</button>
+                <button class="btn" type="button" onclick="location.hash='base_dados'">Acompanhar base</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>EPIs disponiveis</h3></div>
+          <div style="padding:18px">
             <div class="table-wrap"><table>
-              <thead><tr><th>EPI</th><th>CA</th><th>Validade</th><th>Estoque</th><th>Status</th><th>Acao</th></tr></thead>
+              <thead><tr><th>EPI</th><th>CA</th><th>Validade</th><th>Estoque</th><th>Status</th></tr></thead>
               <tbody>${state.epis.map(e => `<tr>
                 <td>${esc(e.nome)}</td>
                 <td>${esc(e.ca_numero)}</td>
                 <td>${fmtDate(e.validade_ca)}</td>
                 <td>${e.estoque_atual}</td>
                 <td>${caBadge(e)}</td>
-                <td><button class="btn" ${caStatus(e) === 'vencido' || Number(e.estoque_atual) <= 0 ? 'disabled' : ''} onclick="openRetiradaModal()">Solicitar</button></td>
-              </tr>`).join('') || '<tr><td colspan="6">Sem EPIs cadastrados.</td></tr>'}</tbody>
+              </tr>`).join('') || '<tr><td colspan="5">Sem EPIs cadastrados.</td></tr>'}</tbody>
             </table></div>
           </div>
         </div>`;
+      state.selectedColaborador = null;
+      state.signatureConfirmed = false;
+      setTimeout(() => {
+        bindAutocomplete();
+        bindSignatureCanvas();
+        updateEpiInfo();
+      }, 0);
     }
 
     function renderBaseDados() {
@@ -1172,8 +1219,21 @@
         state.retiradas.unshift(retirada);
         await loadAll();
         closeModal();
-        routeTo('retiradas');
+        alert('Solicitacao registrada com sucesso.');
+        routeTo(state.route === 'solicitar' ? 'solicitar' : 'retiradas');
       } catch (err) { handleFormError(err); }
+    }
+
+    function clearSolicitarForm() {
+      state.selectedColaborador = null;
+      state.signatureConfirmed = false;
+      const form = document.getElementById('retiradaForm');
+      if (form) form.reset();
+      const info = document.getElementById('epiInfo');
+      if (info) info.textContent = '';
+      const results = document.getElementById('colabResults');
+      if (results) results.classList.add('hidden');
+      if (document.getElementById('signatureCanvas')) clearSignature();
     }
 
     async function submitEpi(id) {
