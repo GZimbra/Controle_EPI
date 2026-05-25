@@ -821,6 +821,7 @@
       const latest = state.retiradas.slice(0, 5);
       document.getElementById('content').innerHTML = `
         ${state.alerts.ca_vencidos ? `<div class="banner red">⚠ ${state.alerts.ca_vencidos} CA(s) vencido(s). Bloqueie novas entregas desses itens.</div>` : ''}
+        ${solicitacaoFormHtml('Solicitar EPI')}
         <div class="card-grid">
           ${metric('Total de EPIs cadastrados', state.epis.length, 'ok')}
           ${metric('Retiradas ativas', active, '')}
@@ -831,6 +832,13 @@
           <div class="panel-head"><h3>Últimas retiradas</h3><button class="btn" onclick="location.hash='retiradas'">Abrir módulo</button></div>
           ${retiradasTable(latest, false)}
         </div>`;
+      state.selectedColaborador = null;
+      state.signatureConfirmed = false;
+      setTimeout(() => {
+        bindAutocomplete();
+        bindSignatureCanvas();
+        updateEpiInfo();
+      }, 0);
     }
 
     function renderRetiradas() {
@@ -854,6 +862,54 @@
             <button class="btn" ${page >= Math.ceil(filtered.length / PAGE_SIZE) ? 'disabled' : ''} onclick="pageRetiradas(1)">›</button>
           </div>
         </div>`;
+    }
+
+    function solicitacaoFormHtml(title) {
+      return `<div class="panel">
+        <div class="panel-head">
+          <h3>${title}</h3>
+          <button class="btn" onclick="clearSolicitarForm()">Limpar</button>
+        </div>
+        <div style="padding:18px">
+          <div class="banner blue">Preencha os dados abaixo para solicitar/registrar a entrega do EPI diretamente nesta tela.</div>
+          <form id="retiradaForm">
+            <div class="form-grid">
+              <div class="field autocomplete">
+                <label>Colaborador</label>
+                <input id="colabSearch" placeholder="Matricula ou nome" autocomplete="off">
+                <div id="colabResults" class="autocomplete-list hidden"></div>
+                <small class="error-msg" data-error="colaborador_id"></small>
+              </div>
+              <div class="field">
+                <label>EPI</label>
+                <select id="retiradaEpi" onchange="updateEpiInfo()">
+                  <option value="">Selecione</option>
+                  ${state.epis.map(e => `<option value="${e.id}" ${caStatus(e) === 'vencido' || Number(e.estoque_atual) <= 0 ? 'disabled' : ''}>${esc(e.nome)} - ${esc(e.ca_numero)} - estoque ${e.estoque_atual}</option>`).join('')}
+                </select>
+                <small id="epiInfo" class="error-msg"></small>
+              </div>
+              <div class="field"><label>Quantidade</label><input id="retiradaQtd" type="number" min="1" value="1"><small class="error-msg" data-error="quantidade"></small></div>
+              <div class="field"><label>Devolucao prevista</label><input id="retiradaDevolucao" type="date"></div>
+              <div class="field"><label>Responsavel</label><input id="retiradaResp" value="${esc(state.user.matricula || state.user.username)}" readonly></div>
+            </div>
+            <div class="field">
+              <label>Assinatura digital</label>
+              <canvas id="signatureCanvas" class="signature-pad" width="400" height="150"></canvas>
+              <div class="signature-tools">
+                <button class="btn" type="button" onclick="clearSignature()">Limpar assinatura</button>
+                <button class="btn accent" type="button" onclick="confirmSignature()">Confirmar assinatura</button>
+                <span id="signatureStatus" class="badge amber">pendente</span>
+              </div>
+              <small class="error-msg">Ao assinar, o colaborador declara ter recebido o EPI em perfeitas condicoes.</small>
+            </div>
+            <label class="check-row"><input id="retiradaCiencia" type="checkbox"> Colaborador declara ciencia do uso correto e do registro legal da entrega.</label>
+            <div style="display:flex;gap:10px;margin-top:16px">
+              <button class="btn primary" type="button" onclick="submitRetirada()">Registrar solicitacao</button>
+              <button class="btn" type="button" onclick="location.hash='base_dados'">Acompanhar base</button>
+            </div>
+          </form>
+        </div>
+      </div>`;
     }
 
     function renderSolicitarEpi() {
