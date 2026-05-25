@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controle de EPI</title>
+  <style>
+    /* ===== Base / Tokens ===== */
+    :root {
+      --primary: #1a3a5c;
+      --accent: #f0a500;
+      --success: #1d7a4e;
+      --danger: #b83232;
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --border: #dde1e7;
+      --text: #1c2333;
+      --muted: #6b7585;
+      --info: #2f6f9f;
+      --shadow: 0 10px 30px rgba(26, 58, 92, .08);
+      --sidebar: 280px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-size: 14px;
+      line-height: 1.45;
+      padding-bottom: 36px;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled, input:disabled, select:disabled { cursor: not-allowed; opacity: .65; }
+    a { color: inherit; text-decoration: none; }
+    .hidden { display: none !important; }
+
+    /* ===== Login ===== */
+    .login-shell {
+      min-height: calc(100vh - 36px);
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(135deg, rgba(26, 58, 92, .95), rgba(28, 35, 51, .92)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 90px);
+      padding: 32px;
+    }
+    .login-panel {
+      width: min(420px, 100%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--primary);
+      border-radius: 6px;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+    .login-panel h1 { margin: 0 0 4px; font-size: 24px; }
+    .login-panel p { margin: 0 0 22px; color: var(--muted); }
+
+    /* ===== Layout ===== */
+    .app-shell {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: calc(100vh - 36px);
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 36px);
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      padding: 22px 18px;
+    }
+    .sidebar-logo {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,.14);
+    }
+    .sidebar-logo strong { display: block; font-size: 16px; }
+    .sidebar-logo span { display: block; color: rgba(255,255,255,.68); font-size: 12px; }
+    .nav {
+      display: grid;
+      gap: 6px;
+      margin-top: 22px;
+    }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      color: rgba(255,255,255,.78);
+    }
+    .nav-link.active, .nav-link:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .nav-icon { width: 18px; height: 18px; flex: 0 0 18px; }
+    .alert-pill {
+      margin-left: auto;
+      min-width: 24px;
+      height: 22px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #1c2333;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 0 7px;
+    }
+    .user-box {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,.14);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(240, 165, 0, .95);
+      color: #1c2333;
+      font-weight: 800;
+    }
+    .user-meta { min-width: 0; flex: 1; }
+    .user-meta strong, .user-meta span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-meta span { color: rgba(255,255,255,.65); font-size: 12px; }
+    .icon-button {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.2);
+      background: transparent;
+      color: #fff;
+      border-radius: 6px;
+    }
+
+    .main {
+      padding: 26px 28px 60px;
+      min-width: 0;
+    }
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    .page-title h2 { margin: 0; font-size: 26px; }
+    .page-title p { margin: 4px 0 0; color: var(--muted); }
+    .api-chip {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 999px;
+      padding: 7px 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* ===== Components ===== */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      min-height: 112px;
+    }
+    .metric span { display: block; color: var(--muted); margin-bottom: 12px; }
+    .metric strong { font-size: 34px; line-height: 1; }
+    .metric.ok { border-top: 4px solid var(--success); }
+    .metric.warn { border-top: 4px solid var(--accent); }
+    .metric.bad { border-top: 4px solid var(--danger); }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-head h3 { margin: 0; font-size: 16px; }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .toolbar-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      min-height: 38px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 650;
+    }
+    .btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn.accent { background: var(--accent); border-color: var(--accent); color: #1c2333; }
+    .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .btn.success { background: var(--success); border-color: var(--success); color: #fff; }
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    label { font-weight: 650; color: var(--text); }
+    input, select, textarea {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 10px;
+      outline: none;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,58,92,.12); }
+    .error-msg { min-height: 16px; color: var(--danger); font-size: 12px; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .check-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      min-height: 34px;
+    }
+    .check-row input { width: auto; min-height: auto; }
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 750;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .badge.blue { color: #174e77; background: #e5f1fa; border-color: #c8dfef; }
+    .badge.green { color: var(--success); background: #e8f5ee; border-color: #cfe8da; }
+    .badge.amber { color: #7a5300; background: #fff4d8; border-color: #f4d58f; }
+    .badge.red { color: var(--danger); background: #fdeaea; border-color: #f1caca; }
+    .banner {
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .banner.red { background: #fdeaea; border-color: #f1caca; color: #802020; }
+    .banner.amber { background: #fff4d8; border-color: #f4d58f; color: #6f4b00; }
+    .banner.blue { background: #e5f1fa; border-color: #c8dfef; color: #174e77; }
+    .table-wrap { overflow: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      background: #f8fafc;
+    }
+    tbody tr:hover { background: #f8fafc; }
+    .actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 6px;
+      color: var(--primary);
+    }
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 14px;
+    }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(26,58,92,.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      display: inline-block;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== Modal / Signature ===== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(28,35,51,.55);
+      display: grid;
+      place-items: center;
+      z-index: 50;
+      padding: 30px;
+    }
+    .modal {
+      width: min(860px, 100%);
+      max-height: calc(100vh - 60px);
+      overflow: auto;
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-shadow: 0 25px 70px rgba(0,0,0,.25);
+    }
+    .modal-head, .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-head h3 { margin: 0; font-size: 18px; }
+    .modal-body { padding: 18px; }
+    .modal-actions {
+      border-top: 1px solid var(--border);
+      border-bottom: 0;
+      justify-content: flex-end;
+      background: #f8fafc;
+    }
+    .signature-pad {
+      width: 400px;
+      height: 150px;
+      border: 2px dashed var(--border);
+      border-radius: 6px;
+      background: #fff;
+      touch-action: none;
+      display: block;
+    }
+    .signature-tools {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .autocomplete {
+      position: relative;
+    }
+    .autocomplete-list {
+      position: absolute;
+      z-index: 5;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+      max-height: 220px;
+      overflow: auto;
+    }
+    .autocomplete-list button {
+      width: 100%;
+      border: 0;
+      background: #fff;
+      text-align: left;
+      padding: 9px 10px;
+    }
+    .autocomplete-list button:hover { background: #f8fafc; }
+
+    /* ===== Config / Print / Footer ===== */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .settings-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .settings-box h3 { margin: 0 0 12px; font-size: 16px; }
+    .footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      z-index: 20;
+    }
+    #printArea { display: none; }
+
+    @media (max-width: 1180px) {
+      :root { --sidebar: 232px; }
+      .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .settings-grid { grid-template-columns: 1fr; }
+      .form-grid-3, .form-grid { grid-template-columns: 1fr; }
+      .checkbox-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media print {
+      body > *:not(#printArea) { display: none !important; }
+      #printArea {
+        display: block;
+        padding: 24px;
+        color: #000;
+        background: #fff;
+      }
+      .print-box {
+        border: 1px solid #000;
+        padding: 18px;
+      }
+      .print-row {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        border-bottom: 1px solid #ddd;
+        padding: 8px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="loginView" class="login-shell">
+    <form id="loginForm" class="login-panel">
+      <div class="brand-mark">EPI</div>
+      <h1>Controle de EPI</h1>
+      <p>Acesso interno SESMT e segurança do trabalho</p>
+      <div class="field">
+        <label for="loginEmail">Email ou usuário</label>
+        <input id="loginEmail" autocomplete="username" value="admin">
+        <small class="error-msg" data-error="username"></small>
+      </div>
+      <div class="field">
+        <label for="loginPassword">Senha</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" value="admin123-change">
+        <small class="error-msg" data-error="password"></small>
+      </div>
+      <button class="btn primary" type="submit"><span data-login-spin></span> Entrar</button>
+      <div id="loginFeedback" class="error-msg" style="margin-top:12px;"></div>
+    </form>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="brand-mark" style="margin:0;background:#fff;color:var(--primary);">EPI</div>
+        <div>
+          <strong id="companyNameSide">Empresa Industrial</strong>
+          <span>Controle legal de EPIs</span>
+        </div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="user-box">
+        <div class="avatar" id="avatar">AD</div>
+        <div class="user-meta">
+          <strong id="userName">admin</strong>
+          <span id="userRole">admin</span>
+        </div>
+        <button class="icon-button" id="logoutBtn" title="Logout">⎋</button>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div class="page-title">
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Indicadores operacionais e alertas legais</p>
+        </div>
+        <div class="api-chip"><span id="globalSpinner"></span> <span id="apiModeLabel">DEMO_MODE</span></div>
+      </div>
+      <section id="content"></section>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div id="printArea"></div>
+  <footer class="footer">
+    <span>Controle de EPI v1.0.0</span>
+    <span>LGPD: dados mínimos, sessão temporária, trilha auditável</span>
+  </footer>
+
+  <script>
+    /* ===== Config ===== */
+    const API = window.EPI_API_URL || (location.protocol === 'file:' ? 'http://localhost:8000' : location.origin);
+    const DEMO_MODE = true;
+    const APP_VERSION = '1.0.0';
+    const PAGE_SIZE = 20;
+    const state = {
+      route: 'dashboard',
+      token: sessionStorage.getItem('epi_token'),
+      user: JSON.parse(sessionStorage.getItem('epi_user') || 'null'),
+      epis: [],
+      colaboradores: [],
+      retiradas: [],
+      audit: [],
+      alerts: { total: 0, ca_vencidos: 0, ca_vencendo: 0, estoque_critico: 0, itens: {} },
+      filters: {},
+      pages: { retiradas: 1 },
+      selectedColaborador: null,
+      signatureConfirmed: false,
+      lastPrint: null,
+      config: {
+        empresa: 'Empresa Industrial',
+        cnpj: '00.000.000/0001-00',
+        dpo: 'dpo@empresa.com.br',
+        backup: 'Diário 02:00',
+        retencao: '5 anos',
+        migration: '0001_initial - 2026-05-25'
+      }
+    };
+
+    /* ===== Demo Data ===== */
+    const today = new Date();
+    const isoDate = d => d.toISOString().slice(0, 10);
+    const addDays = n => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + n);
+      return isoDate(d);
+    };
+    const mock = {
+      epis: [
+        { id: 1, nome: 'Capacete classe B', ca_numero: 'CA-12345', validade_ca: addDays(420), categoria: 'cabeca', tamanhos_disponiveis: ['M','G'], estoque_atual: 50, estoque_minimo: 10, fornecedor: 'Fornecedor Seguro LTDA' },
+        { id: 2, nome: 'Protetor auricular plug', ca_numero: 'CA-44771', validade_ca: addDays(18), categoria: 'protecao_auditiva', tamanhos_disponiveis: ['U'], estoque_atual: 8, estoque_minimo: 20, fornecedor: 'AudioSafe' },
+        { id: 3, nome: 'Óculos ampla visão', ca_numero: 'CA-77440', validade_ca: addDays(-12), categoria: 'visual', tamanhos_disponiveis: ['U'], estoque_atual: 30, estoque_minimo: 12, fornecedor: 'Visão Industrial' },
+        { id: 4, nome: 'Luva vaqueta', ca_numero: 'CA-99110', validade_ca: addDays(210), categoria: 'maos', tamanhos_disponiveis: ['P','M','G','GG'], estoque_atual: 4, estoque_minimo: 10, fornecedor: 'Mãos Seguras' }
+      ],
+      colaboradores: [
+        { id: 1, matricula: 'COL001', nome_completo: 'Colaborador Exemplo', cargo: 'Técnico de Manutenção', setor: 'Operações', tamanho_capacete: 'M', tamanho_luva: 'G', tamanho_bota: '42', tamanho_camiseta: 'G' },
+        { id: 2, matricula: 'COL002', nome_completo: 'Ana Pereira', cargo: 'Operadora de Produção', setor: 'Produção', tamanho_capacete: 'P', tamanho_luva: 'M', tamanho_bota: '37', tamanho_camiseta: 'M' },
+        { id: 3, matricula: 'COL003', nome_completo: 'Marcos Silva', cargo: 'Soldador', setor: 'Caldeiraria', tamanho_capacete: 'G', tamanho_luva: 'GG', tamanho_bota: '43', tamanho_camiseta: 'GG' }
+      ],
+      retiradas: [
+        { id: 1, colaborador_id: 1, epi_id: 1, quantidade: 1, data_retirada: new Date().toISOString(), data_devolucao_prevista: addDays(180), autorizado_por_matricula: 'SESMT001', status: 'ativo', assinatura_hash: '9d4f3a6b8c0e111122223333444455556666777788889999aaaabbbbccccdddd' },
+        { id: 2, colaborador_id: 2, epi_id: 2, quantidade: 2, data_retirada: addDays(-2) + 'T09:00:00Z', data_devolucao_prevista: addDays(60), autorizado_por_matricula: 'SESMT001', status: 'ativo', assinatura_hash: 'abc1234567890000fedcba9876543210abc1234567890000fedcba9876543210' },
+        { id: 3, colaborador_id: 3, epi_id: 4, quantidade: 1, data_retirada: addDays(-6) + 'T13:40:00Z', data_devolucao_prevista: addDays(120), autorizado_por_matricula: 'SESMT001', status: 'danificado', assinatura_hash: '1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff' },
+        { id: 4, colaborador_id: 1, epi_id: 3, quantidade: 1, data_retirada: addDays(-14) + 'T11:20:00Z', data_devolucao_prevista: addDays(45), autorizado_por_matricula: 'SESMT001', status: 'devolvido', assinatura_hash: 'ffffeeee1111222233334444555566667777888899990000aaaabbbbccccdddd' }
+      ],
+      audit: [
+        { id: 1, timestamp: new Date().toISOString(), tabela_afetada: 'retiradas_epi', operacao: 'INSERT', campo_alterado: null, valor_anterior: null, valor_novo: 'created', usuario_sistema: 'admin', ip_origem: '127.0.0.1' },
+        { id: 2, timestamp: addDays(-1) + 'T10:21:00Z', tabela_afetada: 'epis', operacao: 'UPDATE', campo_alterado: 'estoque_atual', valor_anterior: '11', valor_novo: '8', usuario_sistema: 'admin', ip_origem: '127.0.0.1' },
+        { id: 3, timestamp: addDays(-3) + 'T15:02:00Z', tabela_afetada: 'colaboradores', operacao: 'INSERT', campo_alterado: null, valor_anterior: null, valor_novo: 'created', usuario_sistema: 'admin', ip_origem: '127.0.0.1' }
+      ]
+    };
+
+    /* ===== API Client ===== */
+    async function request(path, options = {}) {
+      if (DEMO_MODE) return demoRequest(path, options);
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      if (state.token) headers.Authorization = `Bearer ${state.token}`;
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}${path}`, { ...options, headers });
+        if (res.status === 401) {
+          logout();
+          throw new Error('Sessão expirada');
+        }
+        if (!res.ok) {
+          let payload = {};
+          try { payload = await res.json(); } catch (_) {}
+          const err = new Error(payload.detail || 'Falha na requisição');
+          err.status = res.status;
+          err.payload = payload;
+          throw err;
+        }
+        if (res.status === 204) return null;
+        return await res.json();
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function demoRequest(path, options = {}) {
+      await new Promise(r => setTimeout(r, 120));
+      const method = (options.method || 'GET').toUpperCase();
+      const body = options.body ? JSON.parse(options.body) : null;
+      if (path === '/auth/login') {
+        if (!body.username || !body.password) throw Object.assign(new Error('Credenciais inválidas'), { status: 401 });
+        return { access_token: 'demo-token', token_type: 'bearer' };
+      }
+      if (path === '/epis/alertas') return computeAlerts();
+      if (path === '/epis' && method === 'GET') return mock.epis;
+      if (path === '/colaboradores' && method === 'GET') return mock.colaboradores;
+      if (path === '/retiradas' && method === 'GET') return mock.retiradas;
+      if (path === '/audit' && method === 'GET') return mock.audit;
+      if (path === '/epis' && method === 'POST') {
+        const item = { id: nextId(mock.epis), ...body };
+        mock.epis.unshift(item);
+        pushAudit('epis', 'INSERT', null, null, 'created');
+        return item;
+      }
+      if (path.startsWith('/epis/') && method === 'PATCH') {
+        const item = byId(mock.epis, path);
+        Object.assign(item, body);
+        pushAudit('epis', 'UPDATE', 'registro', 'anterior', 'novo');
+        return item;
+      }
+      if (path.startsWith('/epis/') && method === 'DELETE') {
+        const item = byId(mock.epis, path);
+        item.deleted_at = new Date().toISOString();
+        pushAudit('epis', 'DELETE', null, 'active', 'deleted');
+        return null;
+      }
+      if (path === '/colaboradores' && method === 'POST') {
+        const item = {
+          id: nextId(mock.colaboradores),
+          matricula: body.matricula,
+          nome_completo: body.nome_completo,
+          cargo: body.cargo,
+          setor: body.setor,
+          tamanho_capacete: body.tamanhos?.capacete,
+          tamanho_luva: body.tamanhos?.luva,
+          tamanho_bota: body.tamanhos?.bota,
+          tamanho_camiseta: body.tamanhos?.camiseta,
+          consentimento_timestamp: new Date().toISOString(),
+          consentimento_versao: body.consentimento?.versao,
+          consentimento_canal: body.consentimento?.canal
+        };
+        mock.colaboradores.unshift(item);
+        pushAudit('colaboradores', 'INSERT', null, null, 'created');
+        return item;
+      }
+      if (path === '/retiradas' && method === 'POST') {
+        const epi = mock.epis.find(e => e.id === Number(body.epi_id));
+        if (!epi || epi.estoque_atual < body.quantidade) throw Object.assign(new Error('Estoque insuficiente'), { status: 409 });
+        epi.estoque_atual -= Number(body.quantidade);
+        const item = {
+          id: nextId(mock.retiradas),
+          colaborador_id: Number(body.colaborador_id),
+          epi_id: Number(body.epi_id),
+          quantidade: Number(body.quantidade),
+          data_retirada: new Date().toISOString(),
+          data_devolucao_prevista: body.data_devolucao_prevista,
+          autorizado_por_matricula: body.autorizado_por_matricula,
+          status: 'ativo',
+          assinatura_hash: simpleHash(body.assinatura_base64),
+          ca_numero_entrega: epi.ca_numero,
+          ca_validade_entrega: epi.validade_ca
+        };
+        mock.retiradas.unshift(item);
+        pushAudit('retiradas_epi', 'INSERT', null, null, 'created');
+        return item;
+      }
+      if (path.includes('/status') && method === 'PATCH') {
+        const id = Number(path.split('/')[2]);
+        const item = mock.retiradas.find(r => r.id === id);
+        item.status = body.status;
+        if (body.status === 'devolvido') item.devolvido_em = new Date().toISOString();
+        pushAudit('retiradas_epi', 'UPDATE', 'status', 'ativo', body.status);
+        return item;
+      }
+      throw Object.assign(new Error('Endpoint demo não implementado'), { status: 404 });
+    }
+
+    function nextId(arr) { return Math.max(0, ...arr.map(i => Number(i.id))) + 1; }
+    function byId(arr, path) { return arr.find(i => i.id === Number(path.split('/')[2])); }
+    function simpleHash(text) {
+      let hash = 0;
+      for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+      return `${Math.abs(hash).toString(16).padStart(8, '0')}demoassinatura000000000000000000000000000000000000`;
+    }
+    function pushAudit(tabela, operacao, campo, anterior, novo) {
+      mock.audit.unshift({ id: nextId(mock.audit), timestamp: new Date().toISOString(), tabela_afetada: tabela, operacao, campo_alterado: campo, valor_anterior: anterior, valor_novo: novo, usuario_sistema: state.user?.username || 'admin', ip_origem: '127.0.0.1' });
+    }
+
+    /* ===== Auth / Boot ===== */
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      clearErrors();
+      const username = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      if (!username || !password) return showLoginFeedback('Informe usuário e senha.');
+      try {
+        document.querySelector('[data-login-spin]').innerHTML = '<span class="spinner"></span>';
+        const res = await request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+        state.token = res.access_token;
+        state.user = { username, role: 'admin', matricula: 'SESMT001' };
+        sessionStorage.setItem('epi_token', state.token);
+        sessionStorage.setItem('epi_user', JSON.stringify(state.user));
+        await initApp();
+      } catch (err) {
+        if (err.status === 422) showValidation(err.payload);
+        showLoginFeedback(err.message || 'Falha no login.');
+      } finally {
+        document.querySelector('[data-login-spin]').innerHTML = '';
+      }
+    });
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    window.addEventListener('hashchange', () => routeTo(location.hash.replace('#', '') || 'dashboard'));
+
+    async function initApp() {
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('appView').classList.remove('hidden');
+      document.getElementById('apiModeLabel').textContent = DEMO_MODE ? 'DEMO_MODE ativo' : API;
+      document.getElementById('userName').textContent = state.user.username;
+      document.getElementById('userRole').textContent = state.user.role;
+      document.getElementById('avatar').textContent = state.user.username.slice(0, 2).toUpperCase();
+      document.getElementById('companyNameSide').textContent = state.config.empresa;
+      renderNav();
+      await loadAll();
+      routeTo(location.hash.replace('#', '') || 'dashboard');
+    }
+
+    function logout() {
+      sessionStorage.removeItem('epi_token');
+      sessionStorage.removeItem('epi_user');
+      state.token = null;
+      state.user = null;
+      location.hash = '';
+      document.getElementById('appView').classList.add('hidden');
+      document.getElementById('loginView').classList.remove('hidden');
+    }
+
+    if (state.token || DEMO_MODE) {
+      if (!state.user) state.user = { username: 'admin', role: 'admin', matricula: 'SESMT001' };
+      if (DEMO_MODE && !state.token) state.token = 'demo-token';
+      initApp();
+    }
+
+    /* ===== Data Loading ===== */
+    async function loadAll() {
+      const [epis, colaboradores, retiradas, audit, alerts] = await Promise.all([
+        request('/epis'),
+        request('/colaboradores'),
+        request('/retiradas'),
+        request('/audit'),
+        request('/epis/alertas').catch(() => null)
+      ]);
+      state.epis = epis.filter(e => !e.deleted_at);
+      state.colaboradores = colaboradores.filter(c => !c.deleted_at);
+      state.retiradas = retiradas.filter(r => !r.deleted_at);
+      state.audit = audit;
+      state.alerts = alerts || computeAlerts();
+      renderNav();
+    }
+
+    function computeAlerts() {
+      const now = new Date();
+      const soon = new Date(now);
+      soon.setDate(soon.getDate() + 30);
+      const ca_vencidos = state.epis.length ? state.epis.filter(e => new Date(e.validade_ca) < now) : mock.epis.filter(e => new Date(e.validade_ca) < now);
+      const base = state.epis.length ? state.epis : mock.epis;
+      const ca_vencendo = base.filter(e => new Date(e.validade_ca) >= now && new Date(e.validade_ca) <= soon);
+      const estoque_critico = base.filter(e => Number(e.estoque_atual) <= Number(e.estoque_minimo));
+      return {
+        ca_vencidos: ca_vencidos.length,
+        ca_vencendo: ca_vencendo.length,
+        estoque_critico: estoque_critico.length,
+        total: ca_vencidos.length + ca_vencendo.length + estoque_critico.length,
+        itens: { ca_vencidos, ca_vencendo, estoque_critico }
+      };
+    }
+
+    /* ===== Routing / Render ===== */
+    const routes = {
+      dashboard: ['Dashboard', 'Indicadores operacionais e alertas legais'],
+      retiradas: ['Retiradas', 'Entrega, devolução e comprovantes'],
+      epis: ['EPIs', 'Cadastro, CA e estoque'],
+      colaboradores: ['Colaboradores', 'Dados mínimos e consentimento LGPD'],
+      auditoria: ['Auditoria', 'Trilha imutável de operações'],
+      configuracoes: ['Configurações', 'Empresa, usuários e retenção']
+    };
+    const navItems = [
+      ['dashboard', 'Dashboard', icon('dashboard')],
+      ['retiradas', 'Retiradas', icon('retirada')],
+      ['epis', 'EPIs', icon('epi')],
+      ['colaboradores', 'Colaboradores', icon('people')],
+      ['auditoria', 'Auditoria', icon('audit')],
+      ['configuracoes', 'Configurações', icon('config')]
+    ];
+
+    function renderNav() {
+      document.getElementById('nav').innerHTML = navItems.map(([id, label, svg]) => `
+        <a class="nav-link ${state.route === id ? 'active' : ''}" href="#${id}">
+          ${svg}<span>${label}</span>${id === 'dashboard' && state.alerts.total ? `<span class="alert-pill">${state.alerts.total}</span>` : ''}
+        </a>
+      `).join('');
+    }
+
+    function routeTo(route) {
+      state.route = routes[route] ? route : 'dashboard';
+      const [title, subtitle] = routes[state.route];
+      document.getElementById('pageTitle').textContent = title;
+      document.getElementById('pageSubtitle').textContent = subtitle;
+      renderNav();
+      if (state.route === 'dashboard') renderDashboard();
+      if (state.route === 'retiradas') renderRetiradas();
+      if (state.route === 'epis') renderEpis();
+      if (state.route === 'colaboradores') renderColaboradores();
+      if (state.route === 'auditoria') renderAuditoria();
+      if (state.route === 'configuracoes') renderConfiguracoes();
+    }
+
+    function renderDashboard() {
+      const active = state.retiradas.filter(r => r.status === 'ativo').length;
+      const latest = state.retiradas.slice(0, 5);
+      document.getElementById('content').innerHTML = `
+        ${state.alerts.ca_vencidos ? `<div class="banner red">⚠ ${state.alerts.ca_vencidos} CA(s) vencido(s). Bloqueie novas entregas desses itens.</div>` : ''}
+        <div class="card-grid">
+          ${metric('Total de EPIs cadastrados', state.epis.length, 'ok')}
+          ${metric('Retiradas ativas', active, '')}
+          ${metric('CAs vencendo em 30 dias', state.alerts.ca_vencendo, 'warn')}
+          ${metric('Itens com estoque crítico', state.alerts.estoque_critico, 'bad')}
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Últimas retiradas</h3><button class="btn" onclick="location.hash='retiradas'">Abrir módulo</button></div>
+          ${retiradasTable(latest, false)}
+        </div>`;
+    }
+
+    function renderRetiradas() {
+      const filtered = filterRetiradas();
+      const page = state.pages.retiradas;
+      const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+      document.getElementById('content').innerHTML = `
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <button class="btn primary" onclick="openRetiradaModal()">＋ Nova retirada</button>
+            <select onchange="setFilter('retiradasStatus', this.value)"><option value="">Status</option>${['ativo','devolvido','perdido','danificado'].map(s => `<option ${state.filters.retiradasStatus === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
+            <select onchange="setFilter('setor', this.value)"><option value="">Setor</option>${unique(state.colaboradores.map(c => c.setor)).map(s => `<option ${state.filters.setor === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
+            <input type="date" value="${state.filters.periodo || ''}" onchange="setFilter('periodo', this.value)">
+          </div>
+        </div>
+        <div class="panel">
+          ${retiradasTable(paged, true)}
+          <div class="pagination">
+            <button class="btn" ${page <= 1 ? 'disabled' : ''} onclick="pageRetiradas(-1)">‹</button>
+            <span>Página ${page} de ${Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))}</span>
+            <button class="btn" ${page >= Math.ceil(filtered.length / PAGE_SIZE) ? 'disabled' : ''} onclick="pageRetiradas(1)">›</button>
+          </div>
+        </div>`;
+    }
+
+    function retiradasTable(rows, actions) {
+      return `<div class="table-wrap"><table>
+        <thead><tr><th>Matrícula</th><th>Nome</th><th>EPI</th><th>Qtd</th><th>Data retirada</th><th>Devolução prevista</th><th>Status</th>${actions ? '<th>Ações</th>' : ''}</tr></thead>
+        <tbody>${rows.map(r => {
+          const c = findColab(r.colaborador_id);
+          const e = findEpi(r.epi_id);
+          return `<tr>
+            <td>${esc(c?.matricula || '-')}</td><td>${esc(c?.nome_completo || '-')}</td><td>${esc(e?.nome || '-')}</td>
+            <td>${r.quantidade}</td><td>${fmtDateTime(r.data_retirada)}</td><td>${fmtDate(r.data_devolucao_prevista)}</td>
+            <td>${statusBadge(r.status)}</td>
+            ${actions ? `<td><div class="actions">
+              <button class="action-btn" title="Ver detalhes" onclick="showRetirada(${r.id})">⌕</button>
+              <button class="action-btn" title="Registrar devolução" onclick="devolver(${r.id})">↩</button>
+              <button class="action-btn" title="Imprimir comprovante" onclick="printComprovante(${r.id})">⎙</button>
+            </div></td>` : ''}
+          </tr>`;
+        }).join('') || `<tr><td colspan="${actions ? 8 : 7}">Sem registros.</td></tr>`}</tbody>
+      </table></div>`;
+    }
+
+    function renderEpis() {
+      const q = (state.filters.epiBusca || '').toLowerCase();
+      const rows = state.epis.filter(e => !q || `${e.nome} ${e.ca_numero}`.toLowerCase().includes(q));
+      document.getElementById('content').innerHTML = `
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <button class="btn primary" onclick="openEpiModal()">＋ Novo EPI</button>
+            <input placeholder="Busca por nome/CA" value="${esc(state.filters.epiBusca || '')}" oninput="setFilter('epiBusca', this.value)">
+          </div>
+        </div>
+        <div class="panel"><div class="table-wrap"><table>
+          <thead><tr><th>Nome</th><th>CA</th><th>Validade CA</th><th>Categoria</th><th>Estoque atual</th><th>Estoque mínimo</th><th>Status CA</th><th>Ações</th></tr></thead>
+          <tbody>${rows.map(e => `<tr>
+            <td>${esc(e.nome)}</td><td>${esc(e.ca_numero)}</td><td>${fmtDate(e.validade_ca)}</td><td>${esc(e.categoria)}</td>
+            <td>${e.estoque_atual}</td><td>${e.estoque_minimo}</td><td>${caBadge(e)}</td>
+            <td><div class="actions">
+              <button class="action-btn" title="Editar" onclick="openEpiModal(${e.id})">✎</button>
+              <button class="action-btn" title="Ver histórico" onclick="location.hash='auditoria'">⌕</button>
+              <button class="action-btn" title="Desativar" onclick="desativarEpi(${e.id})">⊘</button>
+            </div></td>
+          </tr>`).join('') || '<tr><td colspan="8">Sem EPIs.</td></tr>'}</tbody>
+        </table></div></div>`;
+    }
+
+    function renderColaboradores() {
+      const q = (state.filters.colabBusca || '').toLowerCase();
+      const rows = state.colaboradores.filter(c => !q || `${c.matricula} ${c.nome_completo}`.toLowerCase().includes(q));
+      document.getElementById('content').innerHTML = `
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <button class="btn primary" onclick="openColaboradorModal()">＋ Novo colaborador</button>
+            <input placeholder="Busca por matrícula/nome" value="${esc(state.filters.colabBusca || '')}" oninput="setFilter('colabBusca', this.value)">
+          </div>
+        </div>
+        <div class="panel"><div class="table-wrap"><table>
+          <thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Setor</th><th>Retiradas ativas</th><th>Ações</th></tr></thead>
+          <tbody>${rows.map(c => `<tr>
+            <td>${esc(c.matricula)}</td><td>${esc(c.nome_completo)}</td><td>${esc(c.cargo)}</td><td>${esc(c.setor)}</td>
+            <td>${state.retiradas.filter(r => r.colaborador_id === c.id && r.status === 'ativo').length}</td>
+            <td><div class="actions"><button class="action-btn" title="Editar" onclick="openColaboradorModal(${c.id})">✎</button><button class="action-btn" title="Portabilidade" onclick="exportColaborador(${c.id})">⇩</button></div></td>
+          </tr>`).join('') || '<tr><td colspan="6">Sem colaboradores.</td></tr>'}</tbody>
+        </table></div></div>`;
+    }
+
+    function renderAuditoria() {
+      const rows = filterAudit();
+      document.getElementById('content').innerHTML = `
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <input placeholder="Tabela afetada" value="${esc(state.filters.auditTabela || '')}" oninput="setFilter('auditTabela', this.value)">
+            <select onchange="setFilter('auditOperacao', this.value)"><option value="">Operação</option>${['INSERT','UPDATE','DELETE'].map(o => `<option ${state.filters.auditOperacao === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+            <input type="date" value="${state.filters.auditPeriodo || ''}" onchange="setFilter('auditPeriodo', this.value)">
+            <input placeholder="Usuário" value="${esc(state.filters.auditUsuario || '')}" oninput="setFilter('auditUsuario', this.value)">
+          </div>
+          <button class="btn accent" onclick="exportAuditCsv()">⇩ Exportar CSV</button>
+        </div>
+        <div class="panel"><div class="table-wrap"><table>
+          <thead><tr><th>Timestamp</th><th>Tabela</th><th>Operação</th><th>Campo</th><th>Valor anterior</th><th>Valor novo</th><th>Usuário</th><th>IP</th></tr></thead>
+          <tbody>${rows.map(a => `<tr>
+            <td>${fmtDateTime(a.timestamp)}</td><td>${esc(a.tabela_afetada)}</td><td>${opBadge(a.operacao)}</td><td>${esc(a.campo_alterado || '-')}</td>
+            <td>${esc(a.valor_anterior || '-')}</td><td>${esc(a.valor_novo || '-')}</td><td>${esc(a.usuario_sistema)}</td><td>${esc(a.ip_origem)}</td>
+          </tr>`).join('') || '<tr><td colspan="8">Sem logs.</td></tr>'}</tbody>
+        </table></div></div>`;
+    }
+
+    function renderConfiguracoes() {
+      document.getElementById('content').innerHTML = `
+        <div class="settings-grid">
+          <div class="settings-box">
+            <h3>Dados da empresa</h3>
+            <div class="field"><label>Nome</label><input value="${esc(state.config.empresa)}" onchange="state.config.empresa=this.value;document.getElementById('companyNameSide').textContent=this.value"></div>
+            <div class="field"><label>CNPJ</label><input value="${esc(state.config.cnpj)}" onchange="state.config.cnpj=this.value"></div>
+            <div class="field"><label>DPO</label><input value="${esc(state.config.dpo)}" onchange="state.config.dpo=this.value"></div>
+          </div>
+          <div class="settings-box">
+            <h3>Backup</h3>
+            <div class="field"><label>Frequência</label><select><option>${state.config.backup}</option><option>Semanal domingo 02:00</option></select></div>
+            <div class="field"><label>Retenção</label><select><option>${state.config.retencao}</option><option>10 anos</option></select></div>
+            <div class="banner blue">Backups devem ser protegidos por criptografia e controle de acesso.</div>
+          </div>
+          <div class="settings-box">
+            <h3>Usuários do sistema</h3>
+            <div class="table-wrap"><table style="min-width:420px"><thead><tr><th>Usuário</th><th>Perfil</th></tr></thead><tbody>
+              <tr><td>admin</td><td>${statusBadge('ativo')} admin</td></tr>
+              <tr><td>operador.sesmt</td><td>operador</td></tr>
+              <tr><td>auditoria</td><td>visualizador</td></tr>
+            </tbody></table></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Versão e migration</h3></div>
+          <div style="padding:18px">Sistema ${APP_VERSION} · Última migration Alembic: ${esc(state.config.migration)}</div>
+        </div>`;
+    }
+
+    /* ===== Modals ===== */
+    function openRetiradaModal() {
+      state.selectedColaborador = null;
+      state.signatureConfirmed = false;
+      showModal('Nova retirada', `
+        <form id="retiradaForm">
+          <div class="form-grid">
+            <div class="field autocomplete">
+              <label>Colaborador</label>
+              <input id="colabSearch" placeholder="Matrícula ou nome" autocomplete="off">
+              <div id="colabResults" class="autocomplete-list hidden"></div>
+              <small class="error-msg" data-error="colaborador_id"></small>
+            </div>
+            <div class="field">
+              <label>EPI</label>
+              <select id="retiradaEpi" onchange="updateEpiInfo()">
+                <option value="">Selecione</option>
+                ${state.epis.map(e => `<option value="${e.id}">${esc(e.nome)} · ${esc(e.ca_numero)}</option>`).join('')}
+              </select>
+              <small id="epiInfo" class="error-msg"></small>
+            </div>
+            <div class="field"><label>Quantidade</label><input id="retiradaQtd" type="number" min="1" value="1"><small class="error-msg" data-error="quantidade"></small></div>
+            <div class="field"><label>Devolução prevista</label><input id="retiradaDevolucao" type="date"></div>
+            <div class="field"><label>Responsável</label><input id="retiradaResp" value="${esc(state.user.matricula || state.user.username)}" readonly></div>
+          </div>
+          <div class="field">
+            <label>Assinatura digital</label>
+            <canvas id="signatureCanvas" class="signature-pad" width="400" height="150"></canvas>
+            <div class="signature-tools">
+              <button class="btn" type="button" onclick="clearSignature()">Limpar</button>
+              <button class="btn accent" type="button" onclick="confirmSignature()">Confirmar assinatura</button>
+              <span id="signatureStatus" class="badge amber">pendente</span>
+            </div>
+            <small class="error-msg">Ao assinar, o colaborador declara ter recebido o EPI em perfeitas condições</small>
+          </div>
+          <label class="check-row"><input id="retiradaCiencia" type="checkbox"> Colaborador declara ciência do uso correto (LGPD art. 18)</label>
+        </form>`,
+        `<button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="submitRetirada()">Registrar retirada</button>`
+      );
+      bindAutocomplete();
+      bindSignatureCanvas();
+    }
+
+    function openEpiModal(id) {
+      const e = id ? findEpi(id) : {};
+      const sizes = e.tamanhos_disponiveis || [];
+      showModal(id ? 'Editar EPI' : 'Novo EPI', `
+        <form id="epiForm">
+          <div class="form-grid">
+            ${input('epiNome','Nome', e.nome || '')}
+            ${input('epiCa','Nº CA', e.ca_numero || '')}
+            ${input('epiValidade','Validade CA', e.validade_ca || '', 'date')}
+            <div class="field"><label>Categoria</label><select id="epiCategoria">${['protecao_auditiva','visual','respiratoria','cabeca','maos','pes','queda'].map(c => `<option ${e.categoria === c ? 'selected' : ''} value="${c}">${c}</option>`).join('')}</select></div>
+            ${input('epiEstoqueAtual','Estoque atual', e.estoque_atual ?? 0, 'number')}
+            ${input('epiEstoqueMinimo','Estoque mínimo', e.estoque_minimo ?? 0, 'number')}
+          </div>
+          <div class="field"><label>Fornecedor</label><input id="epiFornecedor" value="${esc(e.fornecedor || '')}"></div>
+          <div class="field"><label>Tamanhos disponíveis</label><div class="checkbox-grid">${['P','M','G','GG','U','40','41','42','43','44'].map(s => `<label class="check-row"><input name="epiSizes" type="checkbox" value="${s}" ${sizes.includes(s) ? 'checked' : ''}>${s}</label>`).join('')}</div></div>
+        </form>`,
+        `<button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="submitEpi(${id || 0})">${id ? 'Salvar' : 'Cadastrar'}</button>`
+      );
+    }
+
+    function openColaboradorModal(id) {
+      const c = id ? state.colaboradores.find(x => x.id === id) : {};
+      const versao = new Date().toISOString().slice(0, 10);
+      showModal(id ? 'Editar colaborador' : 'Novo colaborador', `
+        <form id="colaboradorForm">
+          <div class="form-grid">
+            ${input('colMatricula','Matrícula', c.matricula || '')}
+            ${input('colNome','Nome completo', c.nome_completo || '')}
+            ${input('colCargo','Cargo', c.cargo || '')}
+            <div class="field"><label>Setor</label><select id="colSetor">${['Operações','Produção','Caldeiraria','Manutenção','Logística','Administrativo'].map(s => `<option ${c.setor === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+          </div>
+          <div class="form-grid-3">
+            ${select('colCapacete','Capacete', ['P','M','G','GG'], c.tamanho_capacete)}
+            ${select('colLuva','Luva', ['P','M','G','GG'], c.tamanho_luva)}
+            ${input('colBota','Bota', c.tamanho_bota || '', 'number')}
+            ${select('colCamiseta','Camiseta', ['P','M','G','GG'], c.tamanho_camiseta)}
+            ${input('colCpf','CPF', '', 'text', id ? 'disabled placeholder="CPF preservado como hash"' : 'placeholder="Somente no cadastro"')}
+          </div>
+          <div class="field">
+            <label>Termo de consentimento LGPD</label>
+            <textarea readonly>Declaro ciência do tratamento mínimo de dados pessoais para controle legal de entrega, uso, devolução e auditoria de EPIs, incluindo matrícula, nome, cargo, setor, tamanhos operacionais, CPF pseudonimizado por hash e assinatura armazenada criptografada. Versão ${versao}.</textarea>
+          </div>
+          <label class="check-row"><input id="colConsent" type="checkbox" ${id ? 'checked disabled' : ''}> Aceito o termo de consentimento LGPD</label>
+        </form>`,
+        `<button class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary" onclick="submitColaborador(${id || 0})">${id ? 'Salvar' : 'Cadastrar'}</button>`
+      );
+    }
+
+    function showModal(title, body, actions) {
+      document.getElementById('modalRoot').innerHTML = `<div class="modal-backdrop">
+        <div class="modal">
+          <div class="modal-head"><h3>${title}</h3><button class="icon-button" style="color:var(--text);border-color:var(--border)" onclick="closeModal()">×</button></div>
+          <div class="modal-body">${body}</div>
+          <div class="modal-actions">${actions}</div>
+        </div>
+      </div>`;
+    }
+    function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
+
+    /* ===== Actions ===== */
+    async function submitRetirada() {
+      clearErrors();
+      const epi = findEpi(Number(val('retiradaEpi')));
+      const qtd = Number(val('retiradaQtd'));
+      if (!state.selectedColaborador) return setError('colaborador_id', 'Selecione um colaborador.');
+      if (!epi) return document.getElementById('epiInfo').textContent = 'Selecione um EPI.';
+      if (!qtd || qtd < 1) return setError('quantidade', 'Quantidade inválida.');
+      if (qtd > Number(epi.estoque_atual)) return setError('quantidade', 'Quantidade acima do estoque.');
+      if (!state.signatureConfirmed) return alert('Confirme a assinatura.');
+      if (!document.getElementById('retiradaCiencia').checked) return alert('Confirmação LGPD obrigatória.');
+      const assinatura = document.getElementById('signatureCanvas').toDataURL('image/png');
+      try {
+        const retirada = await request('/retiradas', { method: 'POST', body: JSON.stringify({
+          colaborador_id: state.selectedColaborador.id,
+          epi_id: epi.id,
+          quantidade: qtd,
+          data_devolucao_prevista: val('retiradaDevolucao') || null,
+          autorizado_por_matricula: val('retiradaResp'),
+          assinatura_base64: assinatura
+        })});
+        state.retiradas.unshift(retirada);
+        await loadAll();
+        closeModal();
+        routeTo('retiradas');
+      } catch (err) { handleFormError(err); }
+    }
+
+    async function submitEpi(id) {
+      const payload = {
+        nome: val('epiNome'),
+        ca_numero: val('epiCa'),
+        validade_ca: val('epiValidade'),
+        categoria: val('epiCategoria'),
+        tamanhos_disponiveis: [...document.querySelectorAll('[name="epiSizes"]:checked')].map(i => i.value),
+        estoque_atual: Number(val('epiEstoqueAtual')),
+        estoque_minimo: Number(val('epiEstoqueMinimo')),
+        fornecedor: val('epiFornecedor')
+      };
+      if (!payload.nome || !payload.ca_numero || !payload.validade_ca) return alert('Nome, CA e validade são obrigatórios.');
+      if (payload.estoque_atual < 0 || payload.estoque_minimo < 0) return alert('Estoque inválido.');
+      try {
+        await request(id ? `/epis/${id}` : '/epis', { method: id ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
+        await loadAll();
+        closeModal();
+        routeTo('epis');
+      } catch (err) { handleFormError(err); }
+    }
+
+    async function submitColaborador(id) {
+      if (!document.getElementById('colConsent').checked) return alert('Consentimento obrigatório.');
+      const payload = {
+        matricula: val('colMatricula'),
+        nome_completo: val('colNome'),
+        cargo: val('colCargo'),
+        setor: val('colSetor'),
+        cpf: val('colCpf'),
+        tamanhos: { capacete: val('colCapacete'), luva: val('colLuva'), bota: val('colBota'), camiseta: val('colCamiseta') },
+        consentimento: { versao: new Date().toISOString().slice(0, 10), canal: 'web' }
+      };
+      if (!id && !payload.cpf) return alert('CPF obrigatório no cadastro inicial.');
+      try {
+        await request('/colaboradores', { method: 'POST', body: JSON.stringify(payload) });
+        await loadAll();
+        closeModal();
+        routeTo('colaboradores');
+      } catch (err) { handleFormError(err); }
+    }
+
+    async function devolver(id) {
+      const r = state.retiradas.find(x => x.id === id);
+      if (!r || r.status !== 'ativo') return;
+      await request(`/retiradas/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'devolvido' }) });
+      await loadAll();
+      routeTo('retiradas');
+    }
+
+    async function desativarEpi(id) {
+      if (!confirm('Desativar EPI por soft delete?')) return;
+      await request(`/epis/${id}`, { method: 'DELETE' });
+      await loadAll();
+      routeTo('epis');
+    }
+
+    function showRetirada(id) {
+      const r = state.retiradas.find(x => x.id === id);
+      const c = findColab(r.colaborador_id);
+      const e = findEpi(r.epi_id);
+      showModal('Detalhes da retirada', `
+        <div class="form-grid">
+          <div><strong>Colaborador</strong><br>${esc(c.nome_completo)} · ${esc(c.matricula)}</div>
+          <div><strong>EPI</strong><br>${esc(e.nome)} · ${esc(e.ca_numero)}</div>
+          <div><strong>Status</strong><br>${statusBadge(r.status)}</div>
+          <div><strong>Assinatura</strong><br>hash final ${esc((r.assinatura_hash || '').slice(-8))}</div>
+        </div>`,
+        `<button class="btn primary" onclick="closeModal()">Fechar</button>`);
+    }
+
+    function printComprovante(id) {
+      const r = state.retiradas.find(x => x.id === id);
+      const c = findColab(r.colaborador_id);
+      const e = findEpi(r.epi_id);
+      document.getElementById('printArea').innerHTML = `
+        <div class="print-box">
+          <h1>Comprovante de Retirada de EPI</h1>
+          ${printRow('Colaborador', `${c.nome_completo} · ${c.matricula}`)}
+          ${printRow('Cargo / Setor', `${c.cargo} · ${c.setor}`)}
+          ${printRow('EPI', `${e.nome} · CA ${e.ca_numero}`)}
+          ${printRow('Quantidade', r.quantidade)}
+          ${printRow('Data retirada', fmtDateTime(r.data_retirada))}
+          ${printRow('Devolução prevista', fmtDate(r.data_devolucao_prevista))}
+          ${printRow('Responsável', r.autorizado_por_matricula)}
+          ${printRow('Hash assinatura', `...${(r.assinatura_hash || '').slice(-8)}`)}
+          <p>LGPD: comprovante operacional com dados mínimos, assinatura criptografada e trilha auditável.</p>
+        </div>`;
+      window.print();
+    }
+
+    function exportAuditCsv() {
+      const rows = filterAudit();
+      const header = ['timestamp','tabela','operacao','campo','valor_anterior','valor_novo','usuario','ip'];
+      const csv = [header.join(','), ...rows.map(r => [
+        r.timestamp, r.tabela_afetada, r.operacao, r.campo_alterado, r.valor_anterior, r.valor_novo, r.usuario_sistema, r.ip_origem
+      ].map(v => `"${String(v ?? '').replaceAll('"', '""')}"`).join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `audit-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function exportColaborador(id) {
+      const c = state.colaboradores.find(x => x.id === id);
+      const blob = new Blob([JSON.stringify(c, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `colaborador-${c.matricula}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    /* ===== Signature / Autocomplete ===== */
+    function bindAutocomplete() {
+      const input = document.getElementById('colabSearch');
+      const list = document.getElementById('colabResults');
+      input.addEventListener('input', () => {
+        const q = input.value.toLowerCase();
+        const rows = state.colaboradores.filter(c => `${c.matricula} ${c.nome_completo}`.toLowerCase().includes(q)).slice(0, 8);
+        list.innerHTML = rows.map(c => `<button type="button" onclick="selectColaborador(${c.id})">${esc(c.matricula)} · ${esc(c.nome_completo)} · ${esc(c.setor)}</button>`).join('');
+        list.classList.toggle('hidden', !q || !rows.length);
+      });
+    }
+    function selectColaborador(id) {
+      state.selectedColaborador = state.colaboradores.find(c => c.id === id);
+      document.getElementById('colabSearch').value = `${state.selectedColaborador.matricula} · ${state.selectedColaborador.nome_completo}`;
+      document.getElementById('colabResults').classList.add('hidden');
+    }
+    function bindSignatureCanvas() {
+      const canvas = document.getElementById('signatureCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#1c2333';
+      let drawing = false;
+      const pos = ev => {
+        const rect = canvas.getBoundingClientRect();
+        const p = ev.touches ? ev.touches[0] : ev;
+        return { x: p.clientX - rect.left, y: p.clientY - rect.top };
+      };
+      const start = ev => { drawing = true; const p = pos(ev); ctx.beginPath(); ctx.moveTo(p.x, p.y); ev.preventDefault(); };
+      const move = ev => { if (!drawing) return; const p = pos(ev); ctx.lineTo(p.x, p.y); ctx.stroke(); ev.preventDefault(); };
+      const end = () => { drawing = false; };
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', move);
+      canvas.addEventListener('mouseup', end);
+      canvas.addEventListener('mouseleave', end);
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', end);
+    }
+    function clearSignature() {
+      const canvas = document.getElementById('signatureCanvas');
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      state.signatureConfirmed = false;
+      document.getElementById('signatureStatus').className = 'badge amber';
+      document.getElementById('signatureStatus').textContent = 'pendente';
+    }
+    function confirmSignature() {
+      state.signatureConfirmed = true;
+      document.getElementById('signatureStatus').className = 'badge green';
+      document.getElementById('signatureStatus').textContent = 'confirmada';
+    }
+    function updateEpiInfo() {
+      const epi = findEpi(Number(val('retiradaEpi')));
+      document.getElementById('epiInfo').textContent = epi ? `CA ${epi.ca_numero} · validade ${fmtDate(epi.validade_ca)} · estoque ${epi.estoque_atual}` : '';
+    }
+
+    /* ===== Filters / Helpers ===== */
+    function filterRetiradas() {
+      return state.retiradas.filter(r => {
+        const c = findColab(r.colaborador_id);
+        return (!state.filters.retiradasStatus || r.status === state.filters.retiradasStatus)
+          && (!state.filters.setor || c?.setor === state.filters.setor)
+          && (!state.filters.periodo || String(r.data_retirada).slice(0,10) === state.filters.periodo);
+      });
+    }
+    function filterAudit() {
+      return state.audit.filter(a =>
+        (!state.filters.auditTabela || a.tabela_afetada.toLowerCase().includes(state.filters.auditTabela.toLowerCase()))
+        && (!state.filters.auditOperacao || a.operacao === state.filters.auditOperacao)
+        && (!state.filters.auditPeriodo || String(a.timestamp).slice(0,10) === state.filters.auditPeriodo)
+        && (!state.filters.auditUsuario || a.usuario_sistema.toLowerCase().includes(state.filters.auditUsuario.toLowerCase()))
+      );
+    }
+    function setFilter(key, value) {
+      state.filters[key] = value;
+      if (key.startsWith('retiradas')) state.pages.retiradas = 1;
+      routeTo(state.route);
+    }
+    function pageRetiradas(delta) {
+      state.pages.retiradas += delta;
+      routeTo('retiradas');
+    }
+    function findColab(id) { return state.colaboradores.find(c => Number(c.id) === Number(id)); }
+    function findEpi(id) { return state.epis.find(e => Number(e.id) === Number(id)); }
+    function unique(arr) { return [...new Set(arr.filter(Boolean))]; }
+    function metric(label, value, cls) { return `<div class="metric ${cls}"><span>${label}</span><strong>${value}</strong></div>`; }
+    function input(id, label, value = '', type = 'text', extra = '') { return `<div class="field"><label>${label}</label><input id="${id}" type="${type}" value="${esc(value)}" ${extra}></div>`; }
+    function select(id, label, options, current) { return `<div class="field"><label>${label}</label><select id="${id}">${options.map(o => `<option ${current === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>`; }
+    function val(id) { return document.getElementById(id)?.value || ''; }
+    function fmtDate(value) { return value ? new Date(value + (String(value).includes('T') ? '' : 'T00:00:00')).toLocaleDateString('pt-BR') : '-'; }
+    function fmtDateTime(value) { return value ? new Date(value).toLocaleString('pt-BR') : '-'; }
+    function statusBadge(status) {
+      const map = { ativo: 'blue', devolvido: 'green', perdido: 'amber', danificado: 'red' };
+      return `<span class="badge ${map[status] || 'blue'}">${esc(status)}</span>`;
+    }
+    function caBadge(e) {
+      const now = new Date();
+      const val = new Date(e.validade_ca + 'T00:00:00');
+      const diff = Math.ceil((val - now) / 86400000);
+      if (diff < 0) return '<span class="badge red">vencido</span>';
+      if (diff <= 30) return '<span class="badge amber">vencendo</span>';
+      return '<span class="badge green">válido</span>';
+    }
+    function opBadge(op) {
+      const map = { INSERT: 'green', UPDATE: 'amber', DELETE: 'red' };
+      return `<span class="badge ${map[op] || 'blue'}">${op}</span>`;
+    }
+    function printRow(k, v) { return `<div class="print-row"><strong>${esc(k)}</strong><span>${esc(v)}</span></div>`; }
+    function esc(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function icon(type) {
+      const paths = {
+        dashboard: '<path d="M3 13h8V3H3v10Zm10 8h8V3h-8v18ZM3 21h8v-6H3v6Z"/>',
+        retirada: '<path d="M4 4h16v4H4V4Zm2 6h12v10H6V10Zm3 3h6v2H9v-2Z"/>',
+        epi: '<path d="M12 3c4 0 7 3 7 7v3h2v3H3v-3h2v-3c0-4 3-7 7-7Zm-5 10h10v-3a5 5 0 0 0-10 0v3Z"/>',
+        people: '<path d="M8 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm8 1a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM2 21c0-4 3-7 6-7s6 3 6 7H2Zm12 0c0-2-.7-4-1.8-5.4 1-.7 2.3-1.1 3.8-1.1 3 0 5 2.3 5 6.5h-7Z"/>',
+        audit: '<path d="M5 3h11l3 3v15H5V3Zm10 1v4h4M8 10h8v2H8v-2Zm0 4h8v2H8v-2Z"/>',
+        config: '<path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm8.5 4a8.8 8.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.7-1L16 3.5h-4l-.4 2.6a8 8 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a8.8 8.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 1.7 1l.4 2.6h4l.4-2.6a8 8 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z"/>'
+      };
+      return `<svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${paths[type]}</svg>`;
+    }
+    function setLoading(on) { document.getElementById('globalSpinner').innerHTML = on ? '<span class="spinner"></span>' : ''; }
+    function clearErrors() { document.querySelectorAll('.error-msg[data-error]').forEach(el => el.textContent = ''); document.getElementById('loginFeedback').textContent = ''; }
+    function setError(field, msg) { const el = document.querySelector(`[data-error="${field}"]`); if (el) el.textContent = msg; }
+    function showLoginFeedback(msg) { document.getElementById('loginFeedback').textContent = msg; }
+    function showValidation(payload) {
+      (payload.detail || []).forEach(err => setError(err.loc?.at(-1), err.msg));
+    }
+    function handleFormError(err) {
+      if (err.status === 422) showValidation(err.payload);
+      else alert(err.message || 'Falha na operação.');
+    }
+  </script>
+</body>
+</html>

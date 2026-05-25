@@ -1,0 +1,10 @@
+.env
+.pytest_cache
+__pycache__
+*.pyc
+epi.db
+backups
+storage/signatures
+docker-compose.yml
+Dockerfile
+tests

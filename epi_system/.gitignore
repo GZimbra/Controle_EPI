@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+epi.db
+storage/signatures/*
+backups/*
+!storage/signatures/.gitkeep
+!backups/.gitkeep
