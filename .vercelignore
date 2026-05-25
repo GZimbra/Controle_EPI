@@ -1,0 +1,12 @@
+.env
+.pytest_cache
+__pycache__
+*.pyc
+epi.db
+epi_system/.pytest_cache
+epi_system/__pycache__
+epi_system/backups
+epi_system/storage/signatures
+epi_system/docker-compose.yml
+epi_system/Dockerfile
+epi_system/tests

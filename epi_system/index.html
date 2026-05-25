@@ -566,7 +566,7 @@
   <script>
     /* ===== Config ===== */
     const API = window.EPI_API_URL || (location.protocol === 'file:' ? 'http://localhost:8000' : location.origin);
-    const DEMO_MODE = true;
+    const DEMO_MODE = window.EPI_DEMO_MODE ?? location.protocol === 'file:';
     const APP_VERSION = '1.0.0';
     const PAGE_SIZE = 20;
     const state = {

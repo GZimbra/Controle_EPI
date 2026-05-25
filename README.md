@@ -92,13 +92,24 @@ docker compose up --build
 
 ## Vercel
 
-O projeto esta preparado para deploy com root em `epi_system`.
+O projeto esta preparado para deploy direto pela raiz do repositorio.
 
 Arquivos relevantes:
 
-- `epi_system/vercel.json`: publica `index.html` e direciona rotas da API para `api/index.py`
-- `epi_system/api/index.py`: handler serverless da aplicacao FastAPI
-- `epi_system/.vercelignore`: remove testes, backups, Docker e arquivos locais do deploy
+- `vercel.json`: publica `epi_system/index.html` e direciona rotas da API para `api/index.py`
+- `api/index.py`: handler serverless da aplicacao FastAPI, adicionando `epi_system/` ao `PYTHONPATH`
+- `requirements.txt`: aponta para `epi_system/requirements.txt`
+- `.vercelignore`: remove testes, backups, Docker e arquivos locais do deploy
+
+No painel da Vercel:
+
+```text
+Framework Preset: Other
+Root Directory: ./
+Build Command: vazio
+Output Directory: vazio
+Install Command: vazio ou pip install -r requirements.txt
+```
 
 Variaveis obrigatorias no painel da Vercel:
 
@@ -112,6 +123,11 @@ DPO_CONTACT=dpo@empresa.com.br
 PRIVACY_POLICY_VERSION=2026-05-25
 SIGNATURE_STORAGE_DIR=/tmp/signatures
 BACKUP_DIR=/tmp/backups
+VERCEL=1
+AUTO_CREATE_TABLES=true
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=troque_antes_do_deploy
+ADMIN_MATRICULA=ADMIN
 ```
 
 Notas operacionais:
@@ -119,7 +135,9 @@ Notas operacionais:
 - Use PostgreSQL em producao. SQLite na Vercel nao e persistente.
 - Scheduler e backup local sao desativados automaticamente quando `VERCEL=1`.
 - Para producao real, substitua storage local de assinaturas por storage externo criptografado.
-- Rode a migration no banco de producao antes do primeiro uso:
+- `AUTO_CREATE_TABLES=true` cria o schema automaticamente no primeiro cold start para facilitar o primeiro deploy.
+- Para operacao controlada, depois do primeiro deploy execute migration externamente e altere `AUTO_CREATE_TABLES=false`.
+- Alternativa manual para migrar o banco de producao:
 
 ```powershell
 cd epi_system

@@ -8,6 +8,9 @@ from slowapi.errors import RateLimitExceeded
 from app.api.routes import audit, auth, colaboradores, epis, lgpd, retiradas
 from app.audit.listeners import register_audit_listeners
 from app.core.config import get_settings
+from app.core.database import Base, SessionLocal, engine
+from app.core.security import get_password_hash
+from app.models.usuario import UsuarioSistema
 from app.services.scheduler import build_scheduler
 
 settings = get_settings()
@@ -47,6 +50,21 @@ scheduler = build_scheduler()
 
 @app.on_event("startup")
 def startup() -> None:
+    if settings.auto_create_tables:
+        Base.metadata.create_all(bind=engine)
+        if settings.admin_username and settings.admin_password:
+            with SessionLocal() as db:
+                exists = db.query(UsuarioSistema).filter_by(username=settings.admin_username).first()
+                if not exists:
+                    db.add(
+                        UsuarioSistema(
+                            username=settings.admin_username,
+                            password_hash=get_password_hash(settings.admin_password),
+                            matricula=settings.admin_matricula,
+                            role="admin",
+                        )
+                    )
+                    db.commit()
     if os.getenv("VERCEL"):
         return
     if not scheduler.running:
